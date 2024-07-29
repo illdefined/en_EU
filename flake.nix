@@ -1,18 +1,20 @@
 {
   description = "Custom locale";
   outputs = { self, ... }: {
-    overlays.default = final: prev: {
-      glibcLocales = prev.glibcLocales.overrideAttrs (base: {
+    nixosModules.default = { config, lib, pkgs, ... }: {
+      i18n.defaultLocale = lib.mkDefault "en_EU.UTF-8";
+
+      i18n.glibcLocales = (pkgs.glibcLocales.overrideAttrs (base: {
         postPatch = base.postPatch + ''
-          cp ${prev.lib.escapeShellArg ./en_EU} localedata/locales/en_EU
+          cp ${lib.escapeShellArg ./en_EU} localedata/locales/en_EU
           echo 'en_EU.UTF-8/UTF-8 \' >>localedata/SUPPORTED
         '';
-      });
-    };
+      })).override {
+        allLocales = builtins.any (x: x == "all")
+          config.i18n.supportedLocales;
 
-    nixosModules.default = { lib, ... }: {
-      nixpkgs.overlays = [ self.overlays.default ];
-      i18n.defaultLocale = lib.mkDefault "en_EU.UTF-8";
+        locales = config.i18n.supportedLocales;
+      };
     };
   };
 }
