@@ -1,14 +1,18 @@
 {
   description = "Custom locale";
-  outputs = { self, nixpkgs, ... }:
-  let
-    patchLocales = pkgs: ovr:
-      (pkgs.glibcLocales.overrideAttrs (base: {
+  outputs = { self, ... }:
+  let patchLocales = pkgs: args:
+      let glibcLocales =
+          if pkgs.glibcLocales == null
+          then pkgs.callPackage
+            (pkgs.path + "/pkgs/development/libraries/glibc/locales.nix") args
+          else pkgs.glibcLocales.override args;
+      in glibcLocales.overrideAttrs (base: {
         postPatch = base.postPatch + ''
           cp ${./en_EU} localedata/locales/en_EU
           echo 'en_EU.UTF-8/UTF-8 \' >>localedata/SUPPORTED
         '';
-      })).override ovr;
+      });
   in {
     nixosModules.default = { config, lib, pkgs, ... }: {
       i18n.defaultLocale = lib.mkDefault "en_EU.UTF-8";
