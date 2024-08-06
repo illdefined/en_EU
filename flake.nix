@@ -25,7 +25,7 @@
     };
 
     homeModules.default = { lib, pkgs, ... }: {
-      home.sessionVariables.LANG = lib.mkDefault "en_EU.UTF-8";
+      home.language.base = lib.mkDefault "en_EU.UTF-8";
       i18n.glibcLocales = patchLocales pkgs {
         allLocales = false;
         locales = [ "en_EU.UTF-8/UTF-8" ];
