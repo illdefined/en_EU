@@ -60,11 +60,13 @@
         nixos = (nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
-            self.nixosModules.default {
+            self.nixosModules.default
+            ({ modulesPath, ... }: {
+              imports = [ (modulesPath + "/profiles/minimal.nix") ];
               boot.loader.grub.enable = false;
               fileSystems."/".device = "nodev";
               system.stateVersion = stateVersion;
-            }
+            })
           ];
         }).config.system.build.toplevel;
       });
