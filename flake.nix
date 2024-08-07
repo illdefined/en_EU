@@ -1,7 +1,18 @@
 {
   description = "Custom locale";
-  outputs = { self, ... }:
-  let patchLocales = pkgs: args:
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { self, nixpkgs, home-manager, ... }:
+  let
+    inherit (nixpkgs) lib;
+    stateVersion = lib.versions.majorMinor lib.version;
+    patchLocales = pkgs: args:
       let glibcLocales =
           if pkgs.glibcLocales == null
           then pkgs.callPackage
@@ -30,6 +41,36 @@
         allLocales = false;
         locales = [ "en_EU.UTF-8/UTF-8" ];
       };
+    };
+
+    checks = lib.genAttrs lib.systems.flakeExposed (system: {
+      home = (home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages.${system};
+          modules = [
+            self.homeModules.default {
+              home = {
+                inherit stateVersion;
+                username = "test";
+                homeDirectory = "/home/test";
+              };
+            }
+          ];
+        }).activationPackage;
+      } // lib.optionalAttrs (lib.hasSuffix "-linux" system) {
+        nixos = (nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            self.nixosModules.default {
+              boot.loader.grub.enable = false;
+              fileSystems."/".device = "nodev";
+              system.stateVersion = stateVersion;
+            }
+          ];
+        }).config.system.build.toplevel;
+      });
+
+    hydraJobs.checks = {
+      inherit (self.checks) x86_64-linux aarch64-linux riscv64-linux;
     };
   };
 }
